@@ -120,7 +120,15 @@ def atualizar_data_tarefa(tarefa_id, nova_data):
             WHERE id = %s;
         """, (nova_data, tarefa_id))
         conn.commit()
-
+        
+def atualizar_tarefa(tarefa_id, campo, valor):
+    import sqlite3
+    conn = sqlite3.connect("noticias.db")  # ou o nome do seu banco
+    c = conn.cursor()
+    c.execute(f"UPDATE tarefas SET {campo} = ? WHERE id = ?", (valor, tarefa_id))
+    conn.commit()
+    conn.close()
+    
 def deletar_tarefa(tarefa_id):
     with conectar() as conn:
         cursor = conn.cursor()
