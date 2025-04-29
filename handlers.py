@@ -20,9 +20,9 @@ user_data_temp = {}
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 Olá! Eu sou a AIA.\n\n"
-        "Use /nova para cadastrar pagamento.\n"
-        "Use /listar para ver pagamentos pendentes.\n"
-        "Use /editar para editar um pagamento.\n"
+        "Use /nova - cadastrar pagamento.\n"
+        "Use /listar - pagamentos pendentes.\n"
+        "Use /editar - editar pagamento.\n"
     )
 
 async def nova_tarefa(update: Update, context: ContextTypes.DEFAULT_TYPE):
