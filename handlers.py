@@ -1,7 +1,7 @@
 # handlers.py
 
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ConversationHandler, filters, ContextTypes
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ConversationHandler, filters, ContextTypes, CallbackQueryHandler
 from datetime import datetime
 from scheduler import scheduler, enviar_lembrete_19h
 from utils import formatar_data_para_db, validar_data
@@ -22,7 +22,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "👋 Olá! Eu sou a AIA.\n\n"
         "Use /nova para cadastrar pagamento.\n"
         "Use /listar para ver pagamentos pendentes.\n"
-        "Use /editar para editar uma pagamento.\n"
+        "Use /editar para editar um pagamento.\n"
     )
 
 async def nova_tarefa(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -121,7 +121,7 @@ def register_handlers(application):
     application.add_handler(conv_handler_nova)
     application.add_handler(CommandHandler("listar", listar_tarefas))
     application.add_handler(CallbackQueryHandler(callback_handler))
-    application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r"^\\d{2}/\d{2}/\d{4}$"), receber_nova_data))
+    application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r"^\d{2}/\d{2}/\d{4}$"), receber_nova_data))
 
 
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -140,7 +140,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         tarefa_id = int(data.split("_")[2])
         # Agendar o lembrete extra às 19h do mesmo dia
         hoje_19h = datetime.now().replace(hour=19, minute=0, second=0, microsecond=0)
-        scheduler.add_job(lambda: enviar_lembrete_19h(context.application, tarefa_id, evento, categoria),
+        scheduler.add_job(lambda: enviar_lembrete_19h(context.application, tarefa_id),
                               'date', run_date=hoje_19h)
         await query.edit_message_text("🔁 Lembrete reprogramado para hoje às 19h!")
 
