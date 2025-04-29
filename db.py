@@ -37,6 +37,13 @@ def adicionar_tarefa(evento, data_vencimento, recorrente, categoria):
         """, (evento, data_vencimento, recorrente, categoria))
         conn.commit()
 
+def deletar_tarefa(tarefa_id: int):
+    conn = sqlite3.connect("noticias.db")  # ou nome do seu banco
+    c = conn.cursor()
+    c.execute("DELETE FROM tarefas WHERE id = ?", (tarefa_id,))
+    conn.commit()
+    conn.close()
+    
 def buscar_tarefas_por_data(data):
     with conectar() as conn:
         cursor = conn.cursor()
