@@ -5,7 +5,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, Con
 from datetime import datetime, timedelta
 from scheduler import scheduler, enviar_lembrete_19h
 from utils import formatar_data_para_db, validar_data, normalizar_texto
-from db import marcar_como_concluido, criar_proxima_tarefa, atualizar_data_tarefa, adicionar_tarefa, buscar_tarefas_pendentes
+from db import marcar_como_concluido, criar_proxima_tarefa, atualizar_data_tarefa, adicionar_tarefa, buscar_tarefas_pendentes, atualizar_tarefa, deletar_tarefa
 
 
 # Estados da conversa
@@ -193,6 +193,82 @@ async def handle_reagendar_hoje(query, tarefa_id):
     nova_data = hoje_19h.strftime("%Y-%m-%d")
     atualizar_data_tarefa(tarefa_id, nova_data)
     await query.edit_message_text("✅ Tarefa reagendada para hoje à noite (19h)!")
+
+
+#Edicao das tarefas
+async def editar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    tarefas = buscar_tarefas_pendentes()
+    if not tarefas:
+        await update.message.reply_text("📭 Você não tem pagamentos para editar.")
+        return
+
+    teclado = []
+    for tarefa in tarefas:
+        id, evento, data_vencimento, categoria = tarefa
+        texto_botao = f"{evento} ({data_vencimento.strftime('%d/%m/%Y')})"
+        teclado.append([InlineKeyboardButton(texto_botao, callback_data=f"editar_{id}")])
+
+    await update.message.reply_text(
+        "✏️ Qual pagamento você deseja editar?",
+        reply_markup=InlineKeyboardMarkup(teclado)
+    )
+
+async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    data = query.data
+
+    if data.startswith("editar_"):
+        tarefa_id = int(data.split("_")[1])
+        context.user_data["editar_tarefa_id"] = tarefa_id
+
+        botoes = [
+            [InlineKeyboardButton("🗓 Alterar Data", callback_data="editar_data")],
+            [InlineKeyboardButton("♻️ Alterar Recorrência", callback_data="editar_recorrencia")],
+            [InlineKeyboardButton("✍️ Alterar Descrição", callback_data="editar_descricao")],
+            [InlineKeyboardButton("🗑 Excluir Tarefa", callback_data="excluir_tarefa")]
+        ]
+        await query.edit_message_text("O que você deseja editar?", reply_markup=InlineKeyboardMarkup(botoes))
+
+    elif data == "editar_data":
+        await query.edit_message_text("Digite a nova data no formato dd/mm/aaaa:")
+        return
+
+    elif data == "editar_recorrencia":
+        botoes = [
+            [InlineKeyboardButton("Sim", callback_data="set_recorrencia_sim")],
+            [InlineKeyboardButton("Não", callback_data="set_recorrencia_nao")]
+        ]
+        await query.edit_message_text("A tarefa será recorrente?", reply_markup=InlineKeyboardMarkup(botoes))
+
+    elif data == "editar_descricao":
+        await query.edit_message_text("Digite a nova descrição para a tarefa:")
+
+    elif data == "excluir_tarefa":
+    tarefa_id = context.user_data.get("editar_tarefa_id")
+    context.user_data["confirmar_exclusao_id"] = tarefa_id
+
+    botoes = [
+        [
+            InlineKeyboardButton("✅ Sim", callback_data="confirmar_exclusao_sim"),
+            InlineKeyboardButton("❌ Não", callback_data="confirmar_exclusao_nao")
+        ]
+    ]
+    await query.edit_message_text("⚠️ Tem certeza que deseja excluir a tarefa?", reply_markup=InlineKeyboardMarkup(botoes))
+
+    elif data == "confirmar_exclusao_sim":
+        tarefa_id = context.user_data.pop("confirmar_exclusao_id", None)
+        if tarefa_id:
+            deletar_tarefa(tarefa_id)
+            await query.edit_message_text("🗑 Tarefa excluída com sucesso!")
+        else:
+            await query.edit_message_text("❌ Não foi possível encontrar a tarefa para excluir.")
+    
+    elif data == "confirmar_exclusao_nao":
+        await query.edit_message_text("👍 Exclusão cancelada. A tarefa continua ativa.")
+        context.user_data.pop("confirmar_exclusao_id", None)
+
+
 
 async def handle_reagendar_amanha(query, tarefa_id):
     amanha = (datetime.now() + timedelta(days=1)).replace(hour=9, minute=0, second=0, microsecond=0)
