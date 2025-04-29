@@ -158,7 +158,9 @@ def register_handlers(application):
 
     # Handler para edição de tarefas
     conv_handler_edicao = ConversationHandler(
-        entry_points=[CommandHandler("editar", editar)],
+        entry_points=[
+            CommandHandler("editar", editar)],
+            CallbackQueryHandler(callback_handler)
         states={
             AGUARDANDO_NOVA_DATA: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_nova_data_edicao)],
             AGUARDANDO_NOVA_RECORRENCIA: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_nova_recorrencia)],
@@ -173,7 +175,6 @@ def register_handlers(application):
     application.add_handler(conv_handler_nova)
     application.add_handler(conv_handler_edicao)
     application.add_handler(CommandHandler("listar", listar_tarefas))
-    application.add_handler(CallbackQueryHandler(callback_handler))
 
 async def tarefa_enviar_lembrete(application, tarefa_id):
     await enviar_lembrete_19h(application, tarefa_id)
