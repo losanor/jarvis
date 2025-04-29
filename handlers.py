@@ -2,7 +2,7 @@
 
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ConversationHandler, filters, ContextTypes, CallbackQueryHandler
-from datetime import datetime
+from datetime import datetime, timedelta
 from scheduler import scheduler, enviar_lembrete_19h
 from utils import formatar_data_para_db, validar_data, normalizar_texto
 from db import marcar_como_concluido, criar_proxima_tarefa, atualizar_data_tarefa, adicionar_tarefa, buscar_tarefas_pendentes
@@ -125,8 +125,8 @@ async def receber_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
             resize_keyboard=True
         )
     )
-   user_data_temp.pop(update.effective_user.id, None)
-   return CONFIRMAR_NOVO_CADASTRO
+    user_data_temp.pop(update.effective_user.id, None)
+    return CONFIRMAR_NOVO_CADASTRO
 
 async def listar_tarefas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tarefas = buscar_tarefas_pendentes()
