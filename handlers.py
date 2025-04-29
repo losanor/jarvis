@@ -138,7 +138,8 @@ async def listar_tarefas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = "📋 *Tarefas Pendentes:*\n\n"
     for tarefa in tarefas:
         id, evento, data_vencimento, categoria = tarefa
-        texto += f"• {evento} | Vence em: {datetime.strptime(data_vencimento, '%Y-%m-%d').strftime('%d/%m/%Y')} | Categoria: {categoria}\n"
+        texto += f"• {evento} | Vence em: {data_vencimento.strftime('%d/%m/%Y')} | Categoria: {categoria}\n"
+
 
     await update.message.reply_text(texto, parse_mode='Markdown')
 
@@ -150,7 +151,8 @@ def register_handlers(application):
             AGUARDANDO_CATEGORIA: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_categoria)],
             CONFIRMAR_NOVO_CADASTRO: [MessageHandler(filters.TEXT & ~filters.COMMAND, confirmar_novo_cadastro)],
         },
-        fallbacks=[]
+        fallbacks=[CommandHandler("nova", nova_tarefa)],
+        allow_reentry=True
     )
 
     application.add_handler(CommandHandler("start", start))
