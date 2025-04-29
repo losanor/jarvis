@@ -4,7 +4,7 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboard
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ConversationHandler, filters, ContextTypes, CallbackQueryHandler
 from datetime import datetime
 from scheduler import scheduler, enviar_lembrete_19h
-from utils import formatar_data_para_db, validar_data
+from utils import formatar_data_para_db, validar_data, normalizar_texto
 from db import marcar_como_concluido, criar_proxima_tarefa, atualizar_data_tarefa, adicionar_tarefa, buscar_tarefas_pendentes
 
 
@@ -54,6 +54,34 @@ async def receber_dados_tarefa(update: Update, context: ContextTypes.DEFAULT_TYP
         await update.message.reply_text("❌ Informe se é Recorrente: Sim ou Não.")
         return AGUARDANDO_DADOS
 
+    # 🔵 >>>>>> Aqui entra o novo código <<<<<< 🔵
+    evento_normalizado = normalizar_texto(evento)
+
+    tarefas_existentes = buscar_tarefas_pendentes()
+    for tarefa in tarefas_existentes:
+        _, evento_existente, _, _ = tarefa
+        if normalizar_texto(evento_existente) == evento_normalizado:
+            await update.message.reply_text(
+                f"⚠️ Já existe uma tarefa parecida: *{evento_existente}*.\nDeseja continuar mesmo assim?",
+                parse_mode="Markdown",
+                reply_markup=ReplyKeyboardMarkup(
+                    [[KeyboardButton("✅ Sim"), KeyboardButton("❌ Não")]],
+                    one_time_keyboard=True,
+                    resize_keyboard=True
+                )
+            )
+
+            # Guardar dados temporários pra usar depois
+            context.user_data["dados_tarefa_pendente"] = {
+                "evento": evento,
+                "data_vencimento": datetime.strptime(data_str, "%d/%m/%Y").strftime("%Y-%m-%d"),
+                "recorrente": recorrente_str.lower() == "sim"
+            }
+            return CONFIRMAR_NOVO_CADASTRO  # vai para fluxo de confirmação
+
+    # 🔵 >>>>>> Fim da verificação de duplicidade 🔵
+
+    # Se não encontrar duplicado, seguir normal:
     user_data_temp[update.effective_user.id] = {
         "evento": evento,
         "data_vencimento": datetime.strptime(data_str, "%d/%m/%Y").strftime("%Y-%m-%d"),
@@ -67,6 +95,7 @@ async def receber_dados_tarefa(update: Update, context: ContextTypes.DEFAULT_TYP
     )
 
     return AGUARDANDO_CATEGORIA
+
 
 async def receber_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
     categoria = update.message.text
@@ -177,8 +206,19 @@ async def confirmar_novo_cadastro(update: Update, context: ContextTypes.DEFAULT_
     resposta = update.message.text.lower()
 
     if "sim" in resposta:
-        await nova_tarefa(update, context)  # Reinicia o cadastro
-        return AGUARDANDO_DADOS
+        if "dados_tarefa_pendente" in context.user_data:
+            dados = context.user_data.pop("dados_tarefa_pendente")
+            user_data_temp[update.effective_user.id] = dados
+
+            teclado = [[KeyboardButton(c)] for c in CATEGORIAS]
+            await update.message.reply_text(
+                "Escolha a categoria para a nova tarefa:",
+                reply_markup=ReplyKeyboardMarkup(teclado, one_time_keyboard=True, resize_keyboard=True)
+            )
+            return AGUARDANDO_CATEGORIA
+        else:
+            await nova_tarefa(update, context)  # Reinicia cadastro normal
+            return AGUARDANDO_DADOS
     else:
         await update.message.reply_text("✅ Missão cumprida! Volte quando quiser.")
         return ConversationHandler.END
