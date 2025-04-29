@@ -42,7 +42,16 @@ def buscar_tarefas_por_data(data):
             AND status = 'pendente';
         """, (data,))
         return cursor.fetchall()
-
+        
+def buscar_tarefa_por_id(tarefa_id):
+    with conectar() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT evento, categoria FROM tarefas
+            WHERE id = ?;
+        """, (tarefa_id,))
+        return cursor.fetchone()
+        
 def marcar_como_concluido(tarefa_id):
     with conectar() as conn:
         cursor = conn.cursor()
