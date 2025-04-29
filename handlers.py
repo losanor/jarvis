@@ -161,6 +161,7 @@ def register_handlers(application):
         entry_points=[
             CommandHandler("editar", editar)],
             CallbackQueryHandler(callback_handler)
+        ],
         states={
             AGUARDANDO_NOVA_DATA: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_nova_data_edicao)],
             AGUARDANDO_NOVA_RECORRENCIA: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_nova_recorrencia)],
