@@ -144,6 +144,7 @@ async def listar_tarefas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(texto, parse_mode='Markdown')
 
 def register_handlers(application):
+    # Handler para cadastro de novas tarefas
     conv_handler_nova = ConversationHandler(
         entry_points=[CommandHandler("nova", nova_tarefa)],
         states={
@@ -155,8 +156,22 @@ def register_handlers(application):
         allow_reentry=True
     )
 
+    # Handler para edição de tarefas
+    conv_handler_edicao = ConversationHandler(
+        entry_points=[CommandHandler("editar", editar)],
+        states={
+            AGUARDANDO_NOVA_DATA: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_nova_data_edicao)],
+            AGUARDANDO_NOVA_RECORRENCIA: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_nova_recorrencia)],
+            AGUARDANDO_NOVA_DESCRICAO: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_nova_descricao)],
+        },
+        fallbacks=[],
+        allow_reentry=True
+    )
+
+    # Registro de todos os handlers na aplicação
     application.add_handler(CommandHandler("start", start))
     application.add_handler(conv_handler_nova)
+    application.add_handler(conv_handler_edicao)
     application.add_handler(CommandHandler("listar", listar_tarefas))
     application.add_handler(CallbackQueryHandler(callback_handler))
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r"^\d{2}/\d{2}/\d{4}$"), receber_nova_data))
@@ -212,63 +227,7 @@ async def editar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "✏️ Qual pagamento você deseja editar?",
         reply_markup=InlineKeyboardMarkup(teclado)
     )
-
-async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-
-    if data.startswith("editar_"):
-        tarefa_id = int(data.split("_")[1])
-        context.user_data["editar_tarefa_id"] = tarefa_id
-
-        botoes = [
-            [InlineKeyboardButton("🗓 Alterar Data", callback_data="editar_data")],
-            [InlineKeyboardButton("♻️ Alterar Recorrência", callback_data="editar_recorrencia")],
-            [InlineKeyboardButton("✍️ Alterar Descrição", callback_data="editar_descricao")],
-            [InlineKeyboardButton("🗑 Excluir Tarefa", callback_data="excluir_tarefa")]
-        ]
-        await query.edit_message_text("O que você deseja editar?", reply_markup=InlineKeyboardMarkup(botoes))
-
-    elif data == "editar_data":
-        await query.edit_message_text("Digite a nova data no formato dd/mm/aaaa:")
-        return
-
-    elif data == "editar_recorrencia":
-        botoes = [
-            [InlineKeyboardButton("Sim", callback_data="set_recorrencia_sim")],
-            [InlineKeyboardButton("Não", callback_data="set_recorrencia_nao")]
-        ]
-        await query.edit_message_text("A tarefa será recorrente?", reply_markup=InlineKeyboardMarkup(botoes))
-
-    elif data == "editar_descricao":
-        await query.edit_message_text("Digite a nova descrição para a tarefa:")
-
-    elif data == "excluir_tarefa":
-    tarefa_id = context.user_data.get("editar_tarefa_id")
-    context.user_data["confirmar_exclusao_id"] = tarefa_id
-
-    botoes = [
-        [
-            InlineKeyboardButton("✅ Sim", callback_data="confirmar_exclusao_sim"),
-            InlineKeyboardButton("❌ Não", callback_data="confirmar_exclusao_nao")
-        ]
-    ]
-    await query.edit_message_text("⚠️ Tem certeza que deseja excluir a tarefa?", reply_markup=InlineKeyboardMarkup(botoes))
-
-    elif data == "confirmar_exclusao_sim":
-        tarefa_id = context.user_data.pop("confirmar_exclusao_id", None)
-        if tarefa_id:
-            deletar_tarefa(tarefa_id)
-            await query.edit_message_text("🗑 Tarefa excluída com sucesso!")
-        else:
-            await query.edit_message_text("❌ Não foi possível encontrar a tarefa para excluir.")
-    
-    elif data == "confirmar_exclusao_nao":
-        await query.edit_message_text("👍 Exclusão cancelada. A tarefa continua ativa.")
-        context.user_data.pop("confirmar_exclusao_id", None)
-
-
+    return ConversationHandler.END
 
 async def handle_reagendar_amanha(query, tarefa_id):
     amanha = (datetime.now() + timedelta(days=1)).replace(hour=9, minute=0, second=0, microsecond=0)
@@ -301,13 +260,48 @@ async def confirmar_novo_cadastro(update: Update, context: ContextTypes.DEFAULT_
         await update.message.reply_text("✅ Missão cumprida! Volte quando quiser.")
         return ConversationHandler.END
 
+async def receber_nova_data_edicao(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    nova_data = update.message.text.strip()
+    if not validar_data(nova_data):
+        await update.message.reply_text("❌ Data inválida. Use o formato dd/mm/aaaa:")
+        return AGUARDANDO_NOVA_DATA
+
+    tarefa_id = context.user_data.get("editar_tarefa_id")
+    atualizar_data_tarefa(tarefa_id, formatar_data_para_db(nova_data))
+    await update.message.reply_text("✅ Data atualizada com sucesso!")
+    return ConversationHandler.END
+
+
+async def receber_nova_recorrencia(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    nova = update.message.text.strip().lower()
+    if nova not in ["sim", "não"]:
+        await update.message.reply_text("❌ Valor inválido. Responda com Sim ou Não:")
+        return AGUARDANDO_NOVA_RECORRENCIA
+
+    tarefa_id = context.user_data.get("editar_tarefa_id")
+    atualizar_tarefa(tarefa_id, campo="recorrente", valor=1 if nova == "sim" else 0)
+    await update.message.reply_text("✅ Recorrência atualizada com sucesso!")
+    return ConversationHandler.END
+
+
+async def receber_nova_descricao(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    nova_desc = update.message.text.strip()
+    if not nova_desc:
+        await update.message.reply_text("❌ A descrição não pode estar vazia:")
+        return AGUARDANDO_NOVA_DESCRICAO
+
+    tarefa_id = context.user_data.get("editar_tarefa_id")
+    atualizar_tarefa(tarefa_id, campo="evento", valor=nova_desc)
+    await update.message.reply_text("✅ Descrição atualizada com sucesso!")
+    return ConversationHandler.END
+    
 #callback
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-
     data = query.data
 
+    # --- Ações relacionadas à tarefa concluída ou reagendada ---
     if data.startswith("fazer_"):
         tarefa_id = int(data.split("_")[1])
         await handle_fazer(query, tarefa_id, context)
@@ -332,17 +326,58 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         tarefa_id = int(data.split("_")[2])
         await handle_reagendar_escolher(query, tarefa_id, context)
 
+    # --- Ações relacionadas à edição da tarefa ---
+    elif data.startswith("editar_"):
+        tarefa_id = int(data.split("_")[1])
+        context.user_data["editar_tarefa_id"] = tarefa_id
 
-async def receber_nova_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    tarefa_id = context.user_data.get("reagendar_tarefa_id")
-    data_digitada = update.message.text
+        botoes = [
+            [InlineKeyboardButton("🗓 Alterar Data", callback_data="editar_data")],
+            [InlineKeyboardButton("♻️ Alterar Recorrência", callback_data="editar_recorrencia")],
+            [InlineKeyboardButton("✍️ Alterar Descrição", callback_data="editar_descricao")],
+            [InlineKeyboardButton("🗑 Excluir Tarefa", callback_data="excluir_tarefa")]
+        ]
+        await query.edit_message_text("O que você deseja editar?", reply_markup=InlineKeyboardMarkup(botoes))
 
-    if not validar_data(data_digitada):
-        await update.message.reply_text("❌ Data inválida. Use o formato dd/mm/aaaa.")
-        return
+    elif data == "editar_data":
+        await query.edit_message_text("Digite a nova data no formato dd/mm/aaaa:")
 
-    nova_data = formatar_data_para_db(data_digitada)
-    atualizar_data_tarefa(tarefa_id, nova_data)
-    await update.message.reply_text("✅ Tarefa reagendada com sucesso!")
-    context.user_data.pop("reagendar_tarefa_id", None)
+    elif data == "editar_recorrencia":
+        botoes = [
+            [InlineKeyboardButton("Sim", callback_data="set_recorrencia_sim")],
+            [InlineKeyboardButton("Não", callback_data="set_recorrencia_nao")]
+        ]
+        await query.edit_message_text("A tarefa será recorrente?", reply_markup=InlineKeyboardMarkup(botoes))
+
+    elif data == "editar_descricao":
+        await query.edit_message_text("Digite a nova descrição para a tarefa:")
+
+    # --- Exclusão com confirmação ---
+    elif data == "excluir_tarefa":
+        tarefa_id = context.user_data.get("editar_tarefa_id")
+        if not tarefa_id:
+            await query.edit_message_text("⚠️ Tarefa não encontrada.")
+            return
+
+        context.user_data["confirmar_exclusao_id"] = tarefa_id
+
+        botoes = [
+            [
+                InlineKeyboardButton("✅ Sim", callback_data="confirmar_exclusao_sim"),
+                InlineKeyboardButton("❌ Não", callback_data="confirmar_exclusao_nao")
+            ]
+        ]
+        await query.edit_message_text("⚠️ Tem certeza que deseja excluir a tarefa?", reply_markup=InlineKeyboardMarkup(botoes))
+
+    elif data == "confirmar_exclusao_sim":
+        tarefa_id = context.user_data.pop("confirmar_exclusao_id", None)
+        if tarefa_id:
+            deletar_tarefa(tarefa_id)
+            await query.edit_message_text("🗑 Tarefa excluída com sucesso!")
+        else:
+            await query.edit_message_text("❌ Não foi possível encontrar a tarefa para excluir.")
+
+    elif data == "confirmar_exclusao_nao":
+        context.user_data.pop("confirmar_exclusao_id", None)
+        await query.edit_message_text("👍 Exclusão cancelada. A tarefa continua ativa.")
 
