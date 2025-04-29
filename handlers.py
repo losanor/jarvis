@@ -9,7 +9,7 @@ from db import marcar_como_concluido, criar_proxima_tarefa, atualizar_data_taref
 
 
 # Estados da conversa
-AGUARDANDO_DADOS, AGUARDANDO_CATEGORIA = range(2)
+AGUARDANDO_DADOS, AGUARDANDO_CATEGORIA, CONFIRMAR_NOVO_CADASTRO = range(3)
 
 # Categorias fixas
 CATEGORIAS = ["Educação", "Casa", "Cartão", "Empregada", "Saúde"]
@@ -88,10 +88,16 @@ async def receber_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
         categoria=categoria
     )
 
-    await update.message.reply_text("✅ Tarefa cadastrada com sucesso!")
-    user_data_temp.pop(update.effective_user.id, None)
-
-    return ConversationHandler.END
+    await update.message.reply_text(
+        "✅ Tarefa cadastrada com sucesso!\n\nDeseja cadastrar outra tarefa?",
+        reply_markup=ReplyKeyboardMarkup(
+            [[KeyboardButton("✅ Sim"), KeyboardButton("❌ Não")]],
+            one_time_keyboard=True,
+            resize_keyboard=True
+        )
+    )
+   user_data_temp.pop(update.effective_user.id, None)
+   return CONFIRMAR_NOVO_CADASTRO
 
 async def listar_tarefas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tarefas = buscar_tarefas_pendentes()
@@ -113,6 +119,7 @@ def register_handlers(application):
         states={
             AGUARDANDO_DADOS: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_dados_tarefa)],
             AGUARDANDO_CATEGORIA: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_categoria)],
+            CONFIRMAR_NOVO_CADASTRO: [MessageHandler(filters.TEXT & ~filters.COMMAND, confirmar_novo_cadastro)],
         },
         fallbacks=[]
     )
@@ -165,6 +172,16 @@ async def handle_reagendar_amanha(query, tarefa_id):
 async def handle_reagendar_escolher(query, tarefa_id, context):
     context.user_data["reagendar_tarefa_id"] = tarefa_id
     await query.edit_message_text("✏️ Digite a nova data no formato dd/mm/aaaa:")
+
+async def confirmar_novo_cadastro(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    resposta = update.message.text.lower()
+
+    if "sim" in resposta:
+        await nova_tarefa(update, context)  # Reinicia o cadastro
+        return AGUARDANDO_DADOS
+    else:
+        await update.message.reply_text("✅ Missão cumprida! Volte quando quiser.")
+        return ConversationHandler.END
 
 #callback
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
