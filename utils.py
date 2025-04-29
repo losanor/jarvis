@@ -19,3 +19,13 @@ def formatar_data_para_usuario(data_str):
     """Converte yyyy-mm-dd para dd/mm/aaaa (exibir para usuário)"""
     data = datetime.strptime(data_str, "%Y-%m-%d")
     return data.strftime("%d/%m/%Y")
+
+import unicodedata
+
+def normalizar_texto(texto: str) -> str:
+    """Remove acentos, converte para minúsculo e tira espaços extras"""
+    texto = unicodedata.normalize('NFKD', texto)
+    texto = ''.join([c for c in texto if not unicodedata.combining(c)])
+    texto = texto.lower().strip()
+    return ' '.join(texto.split())
+    
