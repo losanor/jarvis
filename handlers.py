@@ -123,7 +123,50 @@ def register_handlers(application):
     application.add_handler(CallbackQueryHandler(callback_handler))
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r"^\d{2}/\d{2}/\d{4}$"), receber_nova_data))
 
+async def tarefa_enviar_lembrete(application, tarefa_id):
+    await enviar_lembrete_19h(application, tarefa_id)
 
+#funcoes detalhadas
+async def handle_fazer(query, tarefa_id, context):
+    marcar_como_concluido(tarefa_id)
+    criar_proxima_tarefa(tarefa_id)
+    await query.edit_message_text("✅ Tarefa concluída com sucesso!")
+
+async def handle_lembrar_19h(query, tarefa_id, context):
+    hoje_19h = datetime.now().replace(hour=19, minute=0, second=0, microsecond=0)
+    scheduler.add_job(tarefa_enviar_lembrete, 'date', run_date=hoje_19h, args=[context.application, tarefa_id])
+    await query.edit_message_text("🔁 Lembrete reprogramado para hoje às 19h!")
+
+async def handle_reagendar(query, tarefa_id):
+    teclado = [
+        [
+            InlineKeyboardButton("Hoje à noite (19h)", callback_data=f"reagendar_hoje_{tarefa_id}"),
+            InlineKeyboardButton("Amanhã (9h)", callback_data=f"reagendar_amanha_{tarefa_id}")
+        ],
+        [InlineKeyboardButton("Escolher outra data", callback_data=f"reagendar_escolher_{tarefa_id}")]
+    ]
+    await query.edit_message_text(
+        "🔁 Escolha quando deseja reagendar:",
+        reply_markup=InlineKeyboardMarkup(teclado)
+    )
+
+async def handle_reagendar_hoje(query, tarefa_id):
+    hoje_19h = datetime.now().replace(hour=19, minute=0, second=0, microsecond=0)
+    nova_data = hoje_19h.strftime("%Y-%m-%d")
+    atualizar_data_tarefa(tarefa_id, nova_data)
+    await query.edit_message_text("✅ Tarefa reagendada para hoje à noite (19h)!")
+
+async def handle_reagendar_amanha(query, tarefa_id):
+    amanha = (datetime.now() + timedelta(days=1)).replace(hour=9, minute=0, second=0, microsecond=0)
+    nova_data = amanha.strftime("%Y-%m-%d")
+    atualizar_data_tarefa(tarefa_id, nova_data)
+    await query.edit_message_text("✅ Tarefa reagendada para amanhã às 9h!")
+
+async def handle_reagendar_escolher(query, tarefa_id, context):
+    context.user_data["reagendar_tarefa_id"] = tarefa_id
+    await query.edit_message_text("✏️ Digite a nova data no formato dd/mm/aaaa:")
+
+#callback
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -132,51 +175,28 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data.startswith("fazer_"):
         tarefa_id = int(data.split("_")[1])
-        marcar_como_concluido(tarefa_id)
-        criar_proxima_tarefa(tarefa_id)
-        await query.edit_message_text("✅ Tarefa concluída com sucesso!")
+        await handle_fazer(query, tarefa_id, context)
 
     elif data.startswith("lembrar_19h_"):
         tarefa_id = int(data.split("_")[2])
-        # Agendar o lembrete extra às 19h do mesmo dia
-        hoje_19h = datetime.now().replace(hour=19, minute=0, second=0, microsecond=0)
-        scheduler.add_job(lambda: enviar_lembrete_19h(context.application, tarefa_id),
-                              'date', run_date=hoje_19h)
-        await query.edit_message_text("🔁 Lembrete reprogramado para hoje às 19h!")
+        await handle_lembrar_19h(query, tarefa_id, context)
 
     elif data.startswith("reagendar_"):
         tarefa_id = int(data.split("_")[1])
-
-        teclado = [
-            [
-                InlineKeyboardButton("Hoje à noite (19h)", callback_data=f"reagendar_hoje_{tarefa_id}"),
-                InlineKeyboardButton("Amanhã (9h)", callback_data=f"reagendar_amanha_{tarefa_id}")
-            ],
-            [InlineKeyboardButton("Escolher outra data", callback_data=f"reagendar_escolher_{tarefa_id}")]
-        ]
-        await query.edit_message_text(
-            "🔁 Escolha quando deseja reagendar:",
-            reply_markup=InlineKeyboardMarkup(teclado)
-        )
+        await handle_reagendar(query, tarefa_id)
 
     elif data.startswith("reagendar_hoje_"):
         tarefa_id = int(data.split("_")[2])
-        hoje_19h = datetime.now().replace(hour=19, minute=0, second=0, microsecond=0)
-        nova_data = hoje_19h.strftime("%Y-%m-%d")
-        atualizar_data_tarefa(tarefa_id, nova_data)
-        await query.edit_message_text("✅ Tarefa reagendada para hoje à noite (19h)!")
+        await handle_reagendar_hoje(query, tarefa_id)
 
     elif data.startswith("reagendar_amanha_"):
         tarefa_id = int(data.split("_")[2])
-        amanha = (datetime.now() + timedelta(days=1)).replace(hour=9, minute=0, second=0, microsecond=0)
-        nova_data = amanha.strftime("%Y-%m-%d")
-        atualizar_data_tarefa(tarefa_id, nova_data)
-        await query.edit_message_text("✅ Tarefa reagendada para amanhã às 9h!")
+        await handle_reagendar_amanha(query, tarefa_id)
 
     elif data.startswith("reagendar_escolher_"):
         tarefa_id = int(data.split("_")[2])
-        context.user_data["reagendar_tarefa_id"] = tarefa_id
-        await query.edit_message_text("✏️ Digite a nova data no formato dd/mm/aaaa:")
+        await handle_reagendar_escolher(query, tarefa_id, context)
+
 
 async def receber_nova_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tarefa_id = context.user_data.get("reagendar_tarefa_id")
