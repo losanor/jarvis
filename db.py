@@ -37,12 +37,6 @@ def adicionar_tarefa(evento, data_vencimento, recorrente, categoria):
         """, (evento, data_vencimento, recorrente, categoria))
         conn.commit()
 
-def deletar_tarefa(tarefa_id: int):
-    conn = sqlite3.connect("noticias.db")  # ou nome do seu banco
-    c = conn.cursor()
-    c.execute("DELETE FROM tarefas WHERE id = ?", (tarefa_id,))
-    conn.commit()
-    conn.close()
     
 def buscar_tarefas_por_data(data):
     with conectar() as conn:
@@ -107,7 +101,8 @@ def buscar_tarefas_pendentes():
         cursor = conn.cursor()
         cursor.execute("""
             SELECT id, evento, data_vencimento, categoria FROM tarefas
-            WHERE status = 'pendente';
+            WHERE status = 'pendente'
+            ORDER BY data_vencimento ASC;
         """)
         return cursor.fetchall()
 
@@ -122,12 +117,10 @@ def atualizar_data_tarefa(tarefa_id, nova_data):
         conn.commit()
         
 def atualizar_tarefa(tarefa_id, campo, valor):
-    import sqlite3
-    conn = sqlite3.connect("noticias.db")  # ou o nome do seu banco
-    c = conn.cursor()
-    c.execute(f"UPDATE tarefas SET {campo} = ? WHERE id = ?", (valor, tarefa_id))
-    conn.commit()
-    conn.close()
+    with conectar() as conn:
+        cursor = conn.cursor()
+        cursor.execute(f"UPDATE tarefas SET {campo} = %s WHERE id = %s;", (valor, tarefa_id))
+        conn.commit()
     
 def deletar_tarefa(tarefa_id):
     with conectar() as conn:
