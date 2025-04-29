@@ -36,7 +36,15 @@ async def enviar_lembretes(application):
         tarefa_id, evento, categoria, recorrente = tarefa
         await enviar_lembrete_individual(application, chat_id=application.bot_data["chat_id"], tarefa_id=tarefa_id, evento=evento, categoria=categoria)
 
-async def enviar_lembrete_19h(application, tarefa_id, evento, categoria):
+async def enviar_lembrete_19h(application, tarefa_id):
+    from db import buscar_tarefa_por_id  # função que criamos agora
+
+    tarefa = buscar_tarefa_por_id(tarefa_id)
+    if not tarefa:
+        return
+
+    evento, categoria = tarefa
+
     keyboard = [
         [InlineKeyboardButton("✅ Fazer agora", callback_data=f"fazer_{tarefa_id}")]
     ]
