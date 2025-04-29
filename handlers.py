@@ -174,7 +174,6 @@ def register_handlers(application):
     application.add_handler(conv_handler_edicao)
     application.add_handler(CommandHandler("listar", listar_tarefas))
     application.add_handler(CallbackQueryHandler(callback_handler))
-    application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r"^\d{2}/\d{2}/\d{4}$"), receber_nova_data))
 
 async def tarefa_enviar_lembrete(application, tarefa_id):
     await enviar_lembrete_19h(application, tarefa_id)
