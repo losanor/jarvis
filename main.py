@@ -15,6 +15,7 @@ criar_tabela()
 
 # Criar aplicação
 application = ApplicationBuilder().token(TOKEN).build()
+application.bot_data["chat_id"] = os.getenv("TELEGRAM_CHAT_ID")
 
 # Registrar handlers e scheduler
 register_handlers(application)
