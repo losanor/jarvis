@@ -1,30 +1,26 @@
-# main.py
-
-import asyncio
 import os
 from dotenv import load_dotenv
 from telegram.ext import ApplicationBuilder
 from handlers import register_handlers
 from scheduler import start_scheduler
+from db import criar_tabela
 
-#Carregar variaveis de ambiente
+# Carregar variáveis de ambiente
 load_dotenv()
+
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 
-if not TOKEN:
-    raise ValueError("❌ TELEGRAM_TOKEN não encontrado no ambiente!")
+# Criar tabela no banco (garante)
+criar_tabela()
 
-async def main():
-    application = ApplicationBuilder().token(TOKEN).build()
+# Criar aplicação
+application = ApplicationBuilder().token(TOKEN).build()
 
-    # Registra os handlers de comandos e mensagens
-    register_handlers(application)
+# Registrar handlers e scheduler
+register_handlers(application)
+start_scheduler(application)
 
-    # Inicia o agendador de tarefas (lembretes, etc)
-    start_scheduler(application)
-
-    print("✅ Bot iniciado!")
-    await application.run_polling()
-
+# Iniciar bot no modo polling
 if __name__ == "__main__":
-    asyncio.run(main())
+    print("✅ Bot iniciado no Render!")
+    application.run_polling()
