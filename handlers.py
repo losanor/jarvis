@@ -9,7 +9,7 @@ from db import marcar_como_concluido, criar_proxima_tarefa, atualizar_data_taref
 
 
 # Estados da conversa
-AGUARDANDO_DADOS, AGUARDANDO_CATEGORIA, CONFIRMAR_NOVO_CADASTRO = range(3)
+AGUARDANDO_DADOS, AGUARDANDO_CATEGORIA, CONFIRMAR_NOVO_CADASTRO, AGUARDANDO_NOVA_DATA, AGUARDANDO_NOVA_RECORRENCIA, AGUARDANDO_NOVA_DESCRICAO = range(6)
 
 # Categorias fixas
 CATEGORIAS = ["Educação", "Casa", "Cartão", "Empregada", "Saúde"]
@@ -341,13 +341,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data == "editar_data":
         await query.edit_message_text("Digite a nova data no formato dd/mm/aaaa:")
-
-    elif data == "editar_recorrencia":
-        botoes = [
-            [InlineKeyboardButton("Sim", callback_data="set_recorrencia_sim")],
-            [InlineKeyboardButton("Não", callback_data="set_recorrencia_nao")]
-        ]
-        await query.edit_message_text("A tarefa será recorrente?", reply_markup=InlineKeyboardMarkup(botoes))
 
     elif data == "editar_descricao":
         await query.edit_message_text("Digite a nova descrição para a tarefa:")
