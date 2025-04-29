@@ -327,39 +327,32 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # --- Ações relacionadas à edição da tarefa ---
     elif data.startswith("editar_"):
-    comando = data.split("_")[1]
+        comando = data.split("_")[1]
+        
+        if comando.isdigit():
+            # Quando for editar_<ID>, ou seja, selecionar a tarefa
+            tarefa_id = int(comando)
+            context.user_data["editar_tarefa_id"] = tarefa_id
     
-    if comando.isdigit():
-        # Quando for editar_<ID>, ou seja, selecionar a tarefa
-        tarefa_id = int(comando)
-        context.user_data["editar_tarefa_id"] = tarefa_id
-
-        botoes = [
-            [InlineKeyboardButton("🗓 Alterar Data", callback_data="editar_data")],
-            [InlineKeyboardButton("✍️ Alterar Descrição", callback_data="editar_descricao")],
-            [InlineKeyboardButton("🗑 Excluir Tarefa", callback_data="excluir_tarefa")]
-        ]
-        await query.edit_message_text("O que você deseja editar?", reply_markup=InlineKeyboardMarkup(botoes))
-
-    elif comando == "data":
-        await query.edit_message_text("Digite a nova data no formato dd/mm/aaaa:")
-        return AGUARDANDO_NOVA_DATA
-
-    elif comando == "recorrencia":
-        await query.edit_message_text("♻️ A tarefa será recorrente? Responda: Sim ou Não.")
-        return AGUARDANDO_NOVA_RECORRENCIA
-
-    elif comando == "descricao":
-        await query.edit_message_text("Digite a nova descrição para a tarefa:")
-        return AGUARDANDO_NOVA_DESCRICAO
-
-
-    elif data == "editar_data":
-        await query.edit_message_text("Digite a nova data no formato dd/mm/aaaa:")
-
-    elif data == "editar_descricao":
-        await query.edit_message_text("Digite a nova descrição para a tarefa:")
-
+            botoes = [
+                [InlineKeyboardButton("🗓 Alterar Data", callback_data="editar_data")],
+                [InlineKeyboardButton("✍️ Alterar Descrição", callback_data="editar_descricao")],
+                [InlineKeyboardButton("🗑 Excluir Tarefa", callback_data="excluir_tarefa")]
+            ]
+            await query.edit_message_text("O que você deseja editar?", reply_markup=InlineKeyboardMarkup(botoes))
+    
+        elif comando == "data":
+            await query.edit_message_text("Digite a nova data no formato dd/mm/aaaa:")
+            return AGUARDANDO_NOVA_DATA
+    
+        elif comando == "recorrencia":
+            await query.edit_message_text("♻️ A tarefa será recorrente? Responda: Sim ou Não.")
+            return AGUARDANDO_NOVA_RECORRENCIA
+    
+        elif comando == "descricao":
+            await query.edit_message_text("Digite a nova descrição para a tarefa:")
+            return AGUARDANDO_NOVA_DESCRICAO
+    
     # --- Exclusão com confirmação ---
     elif data == "excluir_tarefa":
         tarefa_id = context.user_data.get("editar_tarefa_id")
