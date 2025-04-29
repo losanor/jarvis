@@ -159,8 +159,8 @@ def register_handlers(application):
     # Handler para edição de tarefas
     conv_handler_edicao = ConversationHandler(
         entry_points=[
-            CommandHandler("editar", editar)],
-            CallbackQueryHandler(callback_handler)
+            CommandHandler("editar", editar),
+            CallbackQueryHandler(callback_handler)  # ✅ Agora está dentro da lista corretamente
         ],
         states={
             AGUARDANDO_NOVA_DATA: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_nova_data_edicao)],
@@ -169,7 +169,8 @@ def register_handlers(application):
         },
         fallbacks=[],
         allow_reentry=True
-    )
+    )    
+
 
     # Registro de todos os handlers na aplicação
     application.add_handler(CommandHandler("start", start))
