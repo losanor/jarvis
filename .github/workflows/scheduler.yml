@@ -2,15 +2,15 @@ name: Executar lembrete diário
 
 on:
   schedule:
-    - cron: '12 12 * * *'  # 09h BRT
+    - cron: '12 12 * * *'
+  workflow_dispatch:
 
 jobs:
   lembrete:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout do repositório (opcional)
-        uses: actions/checkout@v3
-
-      - name: Enviar requisição para Render
-        run: |
-          curl -X POST https://jarvispython-main-py.onrender.com/force-lembrete
+      - uses: actions/checkout@v3
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+      - name: Executar lembrete
+        run: python executar_lembrete.py
