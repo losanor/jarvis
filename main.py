@@ -34,7 +34,8 @@ def force_lembrete():
 
 def run_flask():
     # Usa porta diferente para evitar conflito (por ex: 5000)
-    app_flask.run(host="0.0.0.0", port=5000)
+    PORT = int(os.environ.get("PORT", 8443))
+    app_flask.run(host="0.0.0.0", port=PORT)
 
 # Executar
 if __name__ == "__main__":
