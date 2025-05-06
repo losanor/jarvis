@@ -3,7 +3,7 @@
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ConversationHandler, filters, ContextTypes, CallbackQueryHandler
 from datetime import datetime, timedelta
-from scheduler import scheduler, enviar_lembrete_19h
+from scheduler import scheduler
 from utils import formatar_data_para_db, validar_data, normalizar_texto
 from db import marcar_como_concluido, criar_proxima_tarefa, atualizar_data_tarefa, adicionar_tarefa, buscar_tarefas_pendentes, atualizar_tarefa, deletar_tarefa
 
@@ -178,9 +178,6 @@ def register_handlers(application):
     application.add_handler(conv_handler_edicao)
     application.add_handler(CommandHandler("listar", listar_tarefas))
 
-async def tarefa_enviar_lembrete(application, tarefa_id):
-    await enviar_lembrete_19h(application, tarefa_id)
-
 #funcoes detalhadas
 async def handle_fazer(query, tarefa_id, context):
     marcar_como_concluido(tarefa_id)
@@ -189,9 +186,11 @@ async def handle_fazer(query, tarefa_id, context):
 
 from db import atualizar_data_tarefa
 
+from db import atualizar_data_tarefa
+
 async def handle_lembrar_19h(query, tarefa_id, context):
     hoje_19h = datetime.now().replace(hour=19, minute=0, second=0, microsecond=0)
-    atualizar_data_tarefa(tarefa_id, hoje_19h.strftime("%Y-%m-%d"))  # força reaviso hoje
+    atualizar_data_tarefa(tarefa_id, hoje_19h.strftime("%Y-%m-%d"))  # força relembrar
 
     await query.edit_message_text("🔁 Lembrete reagendado para hoje às 19h!")
 
