@@ -73,6 +73,16 @@ def criar_proxima_tarefa(tarefa_id):
                 nova_data = calcular_mes_seguinte(data_vencimento)
                 adicionar_tarefa(evento, nova_data, recorrente, categoria)
 
+def marcar_lembrete_enviado(tarefa_id):
+    with conectar() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE tarefas
+            SET lembrete_enviado = TRUE
+            WHERE id = %s;
+        """, (tarefa_id,))
+        conn.commit()
+        
 def calcular_mes_seguinte(data_str):
     if isinstance(data_str, str):
         data = datetime.strptime(data_str, "%Y-%m-%d")
