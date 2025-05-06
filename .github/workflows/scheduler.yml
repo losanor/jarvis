@@ -1,17 +1,25 @@
-name: Executar lembrete diário
-
 on:
   schedule:
-    - cron: '0 12 * * *'  # 09:00 BRT
-    - cron: '0 22 * * *'  # 19:00 BRT
-  workflow_dispatch:
+    - cron: '0 12 * * *'  # 09h manhã BRT
+    - cron: '0 22 * * *'  # 19h noite BRT
 
 jobs:
   lembrete:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Instalar dependências
         run: pip install -r requirements.txt
-      - name: Executar lembrete
+
+      - name: Lembretes da manhã
+        if: github.event.schedule == '0 12 * * *'
+        env:
+          HORARIO_EXECUCAO: "manha"
+        run: python executar_lembrete.py
+
+      - name: Lembretes da noite
+        if: github.event.schedule == '0 22 * * *'
+        env:
+          HORARIO_EXECUCAO: "noite"
         run: python executar_lembrete.py
