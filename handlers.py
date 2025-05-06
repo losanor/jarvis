@@ -187,10 +187,13 @@ async def handle_fazer(query, tarefa_id, context):
     criar_proxima_tarefa(tarefa_id)
     await query.edit_message_text("✅ Tarefa concluída com sucesso!")
 
+from db import atualizar_data_tarefa
+
 async def handle_lembrar_19h(query, tarefa_id, context):
     hoje_19h = datetime.now().replace(hour=19, minute=0, second=0, microsecond=0)
-    scheduler.add_job(tarefa_enviar_lembrete, 'date', run_date=hoje_19h, args=[context.application, tarefa_id])
-    await query.edit_message_text("🔁 Lembrete reprogramado para hoje às 19h!")
+    atualizar_data_tarefa(tarefa_id, hoje_19h.strftime("%Y-%m-%d"))  # força reaviso hoje
+
+    await query.edit_message_text("🔁 Lembrete reagendado para hoje às 19h!")
 
 async def handle_reagendar(query, tarefa_id):
     teclado = [
