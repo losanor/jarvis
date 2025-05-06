@@ -2,7 +2,8 @@ name: Executar lembrete diário
 
 on:
   schedule:
-    - cron: '12 12 * * *'
+    - cron: '0 12 * * *'  # 09:00 BRT
+    - cron: '0 22 * * *'  # 19:00 BRT
   workflow_dispatch:
 
 jobs:
