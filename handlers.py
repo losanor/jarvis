@@ -177,6 +177,7 @@ def register_handlers(application):
     application.add_handler(conv_handler_nova)
     application.add_handler(conv_handler_edicao)
     application.add_handler(CommandHandler("listar", listar_tarefas))
+    application.add_handler(CallbackQueryHandler(callback_handler))
 
 #funcoes detalhadas
 async def handle_fazer(query, tarefa_id, context):
