@@ -12,7 +12,7 @@ from db import marcar_como_concluido, criar_proxima_tarefa, atualizar_data_taref
 AGUARDANDO_DADOS, AGUARDANDO_CATEGORIA, CONFIRMAR_NOVO_CADASTRO, AGUARDANDO_NOVA_DATA, AGUARDANDO_NOVA_RECORRENCIA, AGUARDANDO_NOVA_DESCRICAO = range(6)
 
 # Categorias fixas
-CATEGORIAS = ["Educação", "Casa", "Cartão", "Empregada", "Saúde"]
+CATEGORIAS = ["Educação", "Casa", "Cartão", "Empregada", "Saúde", "Pessoal"]
 
 # Memória temporária do usuário
 user_data_temp = {}
