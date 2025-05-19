@@ -262,7 +262,7 @@ async def confirmar_novo_cadastro(update: Update, context: ContextTypes.DEFAULT_
             await nova_tarefa(update, context)  # Reinicia cadastro normal
             return AGUARDANDO_DADOS
     else:
-        await update.message.reply_text("✅ Missão cumprida! Volte quando quiser.")
+        await update.message.reply_text("✅ Missão cumprida!")
         return ConversationHandler.END
 
 async def receber_nova_data_edicao(update: Update, context: ContextTypes.DEFAULT_TYPE):
